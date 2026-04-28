@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내 자산 포트폴리오</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Pretendard:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0e0f11;
+    --bg2: #16181c;
+    --bg3: #1e2126;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #f0ede8;
+    --text2: #8a8680;
+    --text3: #555250;
+    --accent: #c8a96e;
+    --accent2: #e8c98e;
+    --pos: #6db87a;
+    --neg: #e07070;
+    --blue: #6a9fd8;
+    --purple: #9b87d8;
+    --green: #6db87a;
+    --amber: #c8a96e;
+    --gray: #6e6e6e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Pretendard', sans-serif; font-size: 14px; min-height: 100vh; }
+  
+  /* Header */
+  .header { border-bottom: 0.5px solid var(--border); padding: 1.25rem 2rem; display: flex; align-items: center; justify-content: space-between; background: var(--bg); position: sticky; top: 0; z-index: 100; }
+  .logo { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--accent); letter-spacing: 0.02em; }
+  .logo span { color: var(--text2); font-size: 13px; font-family: 'Pretendard', sans-serif; font-weight: 300; margin-left: 12px; }
+  .api-area { display: flex; align-items: center; gap: 8px; }
+  .api-input { background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 6px; padding: 6px 10px; color: var(--text); font-size: 12px; width: 220px; font-family: 'DM Mono', monospace; }
+  .api-input::placeholder { color: var(--text3); }
+  .api-badge { font-size: 11px; padding: 3px 8px; border-radius: 4px; background: var(--bg3); border: 0.5px solid var(--border); color: var(--text3); }
+  .api-badge.ok { color: var(--pos); border-color: var(--pos); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; border-bottom: 0.5px solid var(--border); padding: 0 2rem; background: var(--bg); }
+  .tab { padding: 12px 18px; font-size: 13px; font-weight: 400; cursor: pointer; color: var(--text3); border-bottom: 2px solid transparent; margin-bottom: -0.5px; background: none; border-top: none; border-left: none; border-right: none; transition: all 0.2s; letter-spacing: 0.01em; }
+  .tab:hover { color: var(--text2); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* Layout */
+  .main { padding: 2rem; max-width: 1100px; margin: 0 auto; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Metric cards */
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .metric-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 10px; padding: 1.1rem 1.25rem; }
+  .metric-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .metric-val { font-size: 22px; font-weight: 500; color: var(--text); font-family: 'DM Mono', monospace; }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 4px; font-family: 'DM Mono', monospace; }
+
+  /* Cards */
+  .card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.25rem; }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+  .card-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 8px 12px; font-size: 10px; font-weight: 500; color: var(--text3); border-bottom: 0.5px solid var(--border); text-transform: uppercase; letter-spacing: 0.07em; }
+  td { padding: 12px 12px; border-bottom: 0.5px solid var(--border); color: var(--text); font-size: 13px; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* Form */
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 1rem; }
+  .form-group label { display: block; font-size: 11px; color: var(--text3); margin-bottom: 5px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .form-group input, .form-group select { width: 100%; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 6px; padding: 9px 12px; color: var(--text); font-size: 13px; font-family: 'Pretendard', sans-serif; outline: none; transition: border-color 0.15s; }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+  .form-group select option { background: var(--bg3); }
+
+  /* Buttons */
+  .btn { padding: 8px 16px; font-size: 12px; font-weight: 500; border-radius: 6px; cursor: pointer; transition: all 0.15s; letter-spacing: 0.02em; font-family: 'Pretendard', sans-serif; border: 0.5px solid var(--border2); background: var(--bg3); color: var(--text2); }
+  .btn:hover { color: var(--text); border-color: var(--border2); background: var(--bg); }
+  .btn-primary { background: var(--accent); color: #1a1208; border-color: var(--accent); font-weight: 600; }
+  .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); color: #1a1208; }
+  .btn-sm { padding: 5px 10px; font-size: 11px; }
+  .btn-danger { color: var(--neg); border-color: rgba(224,112,112,0.3); }
+  .btn-danger:hover { background: rgba(224,112,112,0.08); }
+  .btn-refresh { display: flex; align-items: center; gap: 6px; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 99px; font-size: 11px; font-weight: 500; }
+  .badge-index { background: rgba(106,159,216,0.15); color: var(--blue); }
+  .badge-savings { background: rgba(109,184,122,0.15); color: var(--green); }
+  .badge-stock { background: rgba(155,135,216,0.15); color: var(--purple); }
+  .badge-cash { background: rgba(110,110,110,0.2); color: var(--gray); color: #aaa; }
+  .badge-other { background: rgba(200,169,110,0.15); color: var(--amber); }
+
+  .pos { color: var(--pos); }
+  .neg { color: var(--neg); }
+  .mono { font-family: 'DM Mono', monospace; }
+
+  /* Chart */
+  .chart-wrap { position: relative; width: 100%; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  @media(max-width:700px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* Allocation bars */
+  .alloc-item { margin-bottom: 16px; }
+  .alloc-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .alloc-bar { height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+  .alloc-fill { height: 100%; border-radius: 2px; transition: width 0.5s cubic-bezier(.4,0,.2,1); }
+  .alloc-sub { font-size: 11px; color: var(--text3); margin-top: 3px; font-family: 'DM Mono', monospace; }
+
+  /* AI Output */
+  .ai-box { background: var(--bg3); border: 0.5px solid var(--border); border-radius: 8px; padding: 1.25rem; font-size: 13px; line-height: 1.8; color: var(--text); white-space: pre-wrap; min-height: 100px; }
+  .ai-box.loading { color: var(--text3); font-style: italic; }
+  .ai-box strong { color: var(--accent); font-weight: 600; }
+
+  /* Tags */
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1rem; }
+  .tag { padding: 4px 12px; border-radius: 99px; font-size: 12px; border: 0.5px solid var(--border2); cursor: pointer; color: var(--text3); transition: all 0.15s; background: transparent; }
+  .tag:hover { color: var(--text2); }
+  .tag.active { background: var(--accent); color: #1a1208; border-color: var(--accent); font-weight: 500; }
+
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 1.25rem 0; }
+  .spin { animation: spin 1s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .notice { background: rgba(200,169,110,0.08); border: 0.5px solid rgba(200,169,110,0.3); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--amber); margin-bottom: 1.25rem; }
+  .ticker-hint { font-size: 10px; color: var(--text3); margin-top: 3px; }
+
+  /* History add form */
+  .hist-form { background: var(--bg3); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; display: none; }
+  .hist-form.show { display: block; }
+
+  .intrinsic-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; margin-bottom: 1.25rem; }
+  .iv-card { background: var(--bg3); border-radius: 8px; padding: 1rem; border: 0.5px solid var(--border); }
+  .iv-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .iv-val { font-size: 20px; font-weight: 500; font-family: 'DM Mono', monospace; }
+
+  .save-notice { font-size: 11px; color: var(--text3); text-align: center; padding: 8px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <span class="logo">PORTFOLIO <span>자산 관리 + 내재가치 계산기</span></span>
+  </div>
+  <div class="api-area">
+    <input class="api-input" type="password" id="api-key-input" placeholder="sk-ant-... (내재가치 분석용)" oninput="checkApiKey()">
+    <span class="api-badge" id="api-status">API 키 없음</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('portfolio')">포트폴리오</button>
+  <button class="tab" onclick="switchTab('allocation')">카테고리 비중</button>
+  <button class="tab" onclick="switchTab('history')">연도별 추이</button>
+  <button class="tab" onclick="switchTab('intrinsic')">내재가치 계산기</button>
+</div>
+
+<div class="main">
+
+  <!-- ===== 포트폴리오 ===== -->
+  <div id="tab-portfolio" class="section active">
+    <div class="metric-grid" id="summary-cards"></div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">자산 목록</span>
+        <button class="btn btn-refresh" id="refresh-btn" onclick="refreshPrices()">
+          <span id="refresh-icon">↺</span> 주가 새로고침
+        </button>
+      </div>
+      <table>
+        <thead><tr>
+          <th>종목/자산</th><th>카테고리</th><th>매수단가</th><th>수량</th>
+          <th>현재가</th><th>평가금액</th><th>수익률</th><th></th>
+        </tr></thead>
+        <tbody id="asset-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">자산 추가</span></div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>종목명 / 자산명</label>
+          <input id="n-name" type="text" placeholder="예: 삼성전자">
+        </div>
+        <div class="form-group">
+          <label>티커 (주식만)
+            <span class="ticker-hint">예: 005930.KS, SPY, AAPL</span>
+          </label>
+          <input id="n-ticker" type="text" placeholder="주가 자동 조회용">
+        </div>
+        <div class="form-group">
+          <label>카테고리</label>
+          <select id="n-cat">
+            <option value="index">지수 추종</option>
+            <option value="savings">적금/예금</option>
+            <option value="stock">우량 기업</option>
+            <option value="cash">현금</option>
+            <option value="other">기타</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>매수 단가</label>
+          <input id="n-price" type="number" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>수량 (주) / 금액 (원)</label>
+          <input id="n-qty" type="number" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>통화</label>
+          <select id="n-cur">
+            <option value="KRW">KRW 원</option>
+            <option value="USD">USD 달러</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addAsset()">+ 자산 추가</button>
+    </div>
+
+    <div class="save-notice">데이터는 브라우저 로컬스토리지에 자동 저장됩니다.</div>
+  </div>
+
+  <!-- ===== 카테고리 비중 ===== -->
+  <div id="tab-allocation" class="section">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:1rem;">카테고리별 비중</div>
+        <div class="chart-wrap" style="height:250px;">
+          <canvas id="pie-chart" role="img" aria-label="카테고리별 자산 비중 도넛 차트"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:1rem;">비중 분석</div>
+        <div id="alloc-detail"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">카테고리별 자산 목록</span></div>
+      <div class="tag-row" id="cat-tags"></div>
+      <table>
+        <thead><tr><th>종목</th><th>카테고리</th><th>평가금액</th><th>비중</th><th>수익률</th></tr></thead>
+        <tbody id="alloc-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== 연도별 추이 ===== -->
+  <div id="tab-history" class="section">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">연도별 자산 추이</span>
+        <button class="btn" onclick="toggleHistForm()">+ 기록 추가</button>
+      </div>
+      <div class="hist-form" id="hist-form">
+        <div class="form-grid">
+          <div class="form-group"><label>연도</label><input id="h-year" type="number" placeholder="2025" min="2000" max="2040"></div>
+          <div class="form-group"><label>총 자산 (원)</label><input id="h-amount" type="number" placeholder="100000000"></div>
+          <div class="form-group"><label>메모</label><input id="h-memo" type="text" placeholder="예: 집 구매, 연봉 인상"></div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" onclick="addHistory()">저장</button>
+          <button class="btn" onclick="toggleHistForm()">취소</button>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:280px;">
+        <canvas id="hist-chart" role="img" aria-label="연도별 총 자산 추이 라인 차트"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:1rem;">연도별 기록</div>
+      <table>
+        <thead><tr><th>연도</th><th>총 자산</th><th>전년 대비</th><th>증가율</th><th>메모</th><th></th></tr></thead>
+        <tbody id="hist-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== 내재가치 계산기 ===== -->
+  <div id="tab-intrinsic" class="section">
+    <div class="notice">
+      ⚠️ 내재가치 분석은 상단의 Anthropic API 키가 필요합니다. <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent)">console.anthropic.com</a>에서 발급 가능합니다. 교육 목적의 분석이며 실제 투자 결정에 단독 사용 금지.
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">워렌 버핏 내재가치 계산기</span></div>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:1.25rem;">기업명을 입력하면 DCF + Owner Earnings 방식으로 내재가치를 분석합니다.</p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>기업명</label>
+          <input id="iv-company" type="text" placeholder="예: 애플, 삼성전자, NVIDIA">
+        </div>
+        <div class="form-group">
+          <label>현재 주가 (선택)</label>
+          <input id="iv-price" type="number" placeholder="직접 입력">
+        </div>
+        <div class="form-group">
+          <label>통화</label>
+          <select id="iv-cur"><option value="KRW">KRW</option><option value="USD">USD</option></select>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em;">직접 지표 입력 (선택 — 비우면 AI가 추정)</p>
+      <div class="form-grid">
+        <div class="form-group"><label>EPS (주당순이익)</label><input id="iv-eps" type="number" placeholder="미입력 시 AI 추정"></div>
+        <div class="form-group"><label>예상 성장률 (%/년)</label><input id="iv-growth" type="number" placeholder="미입력 시 AI 추정"></div>
+        <div class="form-group"><label>할인율 (%)</label><input id="iv-disc" type="number" value="10" placeholder="10"></div>
+        <div class="form-group"><label>분석 기간 (년)</label><input id="iv-yrs" type="number" value="10" placeholder="10"></div>
+      </div>
+      <button class="btn btn-primary" onclick="calcIntrinsic()" style="margin-top:.5rem;">AI 내재가치 분석 →</button>
+    </div>
+
+    <div class="card" id="iv-result" style="display:none;">
+      <div class="card-title" style="margin-bottom:1rem;">분석 결과</div>
+      <div class="intrinsic-grid" id="iv-metric-grid"></div>
+      <hr class="divider">
+      <div class="ai-box" id="iv-output">분석 중...</div>
+    </div>
+
+    <!-- 이력 저장된 계산 목록 -->
+    <div class="card" id="iv-history-card" style="display:none;">
+      <div class="card-title" style="margin-bottom:1rem;">분석 이력</div>
+      <table>
+        <thead><tr><th>기업</th><th>분석일</th><th>주가</th><th>내재가치</th><th>판정</th><th></th></tr></thead>
+        <tbody id="iv-hist-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const CAT_LABELS = { index:'지수 추종', savings:'적금/예금', stock:'우량 기업', cash:'현금', other:'기타' };
+const CAT_COLORS = { index:'#6a9fd8', savings:'#6db87a', stock:'#9b87d8', cash:'#8a8680', other:'#c8a96e' };
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('portfolio_v2');
+    if (s) return JSON.parse(s);
+  } catch(e) {}
+  return {
+    assets: [
+      { id:1, name:'S&P500 ETF (SPY)', ticker:'SPY', category:'index', buyPrice:450, qty:10, currency:'USD', currentPrice:null },
+      { id:2, name:'삼성전자', ticker:'005930.KS', category:'stock', buyPrice:68000, qty:50, currency:'KRW', currentPrice:null },
+      { id:3, name:'국민은행 적금', ticker:'', category:'savings', buyPrice:10000000, qty:1, currency:'KRW', currentPrice:10000000 },
+      { id:4, name:'현금 비상금', ticker:'', category:'cash', buyPrice:5000000, qty:1, currency:'KRW', currentPrice:5000000 },
+    ],
+    history: [
+      { year:2021, amount:50000000, memo:'투자 시작' },
+      { year:2022, amount:62000000, memo:'적금 추가' },
+      { year:2023, amount:78000000, memo:'주식 수익' },
+      { year:2024, amount:95000000, memo:'연봉 인상' },
+    ],
+    ivHistory: [],
+    nextId: 5,
+    usdToKrw: 1350,
+    catFilter: 'all'
+  };
+}
+
+let ST = loadState();
+
+function save() { localStorage.setItem('portfolio_v2', JSON.stringify(ST)); }
+
+function checkApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  const badge = document.getElementById('api-status');
+  if (key.startsWith('sk-ant-') && key.length > 20) {
+    badge.textContent = 'API 연결됨'; badge.className = 'api-badge ok';
+  } else if (key) {
+    badge.textContent = '키 형식 확인'; badge.className = 'api-badge';
+  } else {
+    badge.textContent = 'API 키 없음'; badge.className = 'api-badge';
+  }
+}
+
+function getApiKey() { return document.getElementById('api-key-input').value.trim(); }
+
+function toKRW(a) {
+  const cur = a.currentPrice ?? a.buyPrice;
+  const val = cur * a.qty;
+  return a.currency === 'USD' ? val * ST.usdToKrw : val;
+}
+function totalPortfolio() { return ST.assets.reduce((s,a) => s + toKRW(a), 0); }
+function fmtKRW(n) {
+  if (n >= 1e8) return (n/1e8).toFixed(2) + '억원';
+  if (n >= 1e4) return Math.round(n/1e4).toLocaleString() + '만원';
+  return Math.round(n).toLocaleString() + '원';
+}
+function retPct(a) {
+  const cur = a.currentPrice ?? a.buyPrice;
+  return ((cur - a.buyPrice) / a.buyPrice * 100).toFixed(2);
+}
+function badge(cat) {
+  return `<span class="badge badge-${cat}">${CAT_LABELS[cat]||cat}</span>`;
+}
+
+function renderSummary() {
+  const total = totalPortfolio();
+  const cost = ST.assets.reduce((s,a) => {
+    const v = a.buyPrice * a.qty;
+    return s + (a.currency==='USD' ? v*ST.usdToKrw : v);
+  }, 0);
+  const gain = total - cost;
+  const pct = cost > 0 ? (gain/cost*100).toFixed(2) : '0.00';
+  document.getElementById('summary-cards').innerHTML = `
+    <div class="metric-card">
+      <div class="metric-label">총 평가금액</div>
+      <div class="metric-val mono">${fmtKRW(total)}</div>
+      <div class="metric-sub">${ST.assets.length}개 자산</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">총 투자원금</div>
+      <div class="metric-val mono">${fmtKRW(cost)}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">총 손익</div>
+      <div class="metric-val mono ${gain>=0?'pos':'neg'}">${gain>=0?'+':''}${fmtKRW(Math.abs(gain))}</div>
+      <div class="metric-sub ${gain>=0?'pos':'neg'}">${gain>=0?'+':''}${pct}%</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">환율 (USD/KRW)</div>
+      <div class="metric-val mono">${ST.usdToKrw.toLocaleString()}</div>
+      <div class="metric-sub"><input type="number" id="usd-input" value="${ST.usdToKrw}" style="width:80px;background:transparent;border:none;border-bottom:0.5px solid #555;color:#aaa;font-size:11px;padding:1px 0;font-family:DM Mono,monospace;" onchange="updateUSD(this.value)"> 직접 변경</div>
+    </div>
+  `;
+}
+function updateUSD(v) { ST.usdToKrw = parseFloat(v)||1350; save(); renderPortfolio(); }
+
+function renderPortfolio() {
+  renderSummary();
+  const tbody = document.getElementById('asset-tbody');
+  tbody.innerHTML = ST.assets.map(a => {
+    const cur = a.currentPrice ?? a.buyPrice;
+    const val = toKRW(a);
+    const ret = retPct(a);
+    const live = a.ticker && a.currentPrice;
+    return `<tr>
+      <td>
+        <strong style="font-weight:500">${a.name}</strong>
+        ${a.ticker ? `<br><span class="mono" style="font-size:11px;color:var(--text3)">${a.ticker}</span>` : ''}
+      </td>
+      <td>${badge(a.category)}</td>
+      <td class="mono" style="font-size:12px">${a.buyPrice.toLocaleString()} ${a.currency}</td>
+      <td class="mono" style="font-size:12px">${a.qty.toLocaleString()}</td>
+      <td class="mono" style="font-size:12px">${cur.toLocaleString()} ${a.currency}${live ? '<br><span style="font-size:10px;color:var(--pos)">실시간</span>' : ''}</td>
+      <td class="mono" style="font-weight:500">${fmtKRW(val)}</td>
+      <td class="mono ${ret>=0?'pos':'neg'}">${ret>=0?'+':''}${ret}%</td>
+      <td><button class="btn btn-sm btn-danger" onclick="delAsset(${a.id})">삭제</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function delAsset(id) {
+  if (!confirm('삭제할까요?')) return;
+  ST.assets = ST.assets.filter(a => a.id !== id);
+  save(); renderAll();
+}
+
+function addAsset() {
+  const name = document.getElementById('n-name').value.trim();
+  const ticker = document.getElementById('n-ticker').value.trim().toUpperCase();
+  const cat = document.getElementById('n-cat').value;
+  const price = parseFloat(document.getElementById('n-price').value) || 0;
+  const qty = parseFloat(document.getElementById('n-qty').value) || 0;
+  const cur = document.getElementById('n-cur').value;
+  if (!name || !price || !qty) { alert('이름, 단가, 수량을 입력하세요.'); return; }
+  ST.assets.push({ id: ST.nextId++, name, ticker, category: cat, buyPrice: price, qty, currency: cur, currentPrice: null });
+  ['n-name','n-ticker','n-price','n-qty'].forEach(id => document.getElementById(id).value = '');
+  save(); renderAll();
+}
+
+async function refreshPrices() {
+  const tickers = ST.assets.filter(a => a.ticker).map(a => a.ticker);
+  if (!tickers.length) { alert('티커가 있는 종목이 없습니다.'); return; }
+  const key = getApiKey();
+  if (!key) { alert('API 키를 먼저 입력해주세요.'); return; }
+  const btn = document.getElementById('refresh-btn');
+  const icon = document.getElementById('refresh-icon');
+  icon.className = 'spin'; btn.disabled = true;
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514', max_tokens: 500,
+        messages: [{ role: 'user', content: `다음 주식 티커들의 현재 대략적 주가를 JSON으로만 반환하세요. 형식: {"SPY":580,"005930.KS":78000} 알 수 없으면 null. JSON만, 다른 텍스트 없이. 티커: ${tickers.join(',')}` }]
+      })
+    });
+    const data = await resp.json();
+    const text = data.content?.map(c => c.text||'').join('') || '';
+    const prices = JSON.parse(text.replace(/```json|```/g,'').trim());
+    ST.assets.forEach(a => { if (a.ticker && prices[a.ticker] != null) a.currentPrice = prices[a.ticker]; });
+    save(); renderAll();
+  } catch(e) { alert('주가 조회 실패: ' + e.message); }
+  icon.className = ''; btn.disabled = false;
+}
+
+let pieChart = null;
+function renderAllocation() {
+  const total = totalPortfolio();
+  const cats = {};
+  ST.assets.forEach(a => { cats[a.category] = (cats[a.category]||0) + toKRW(a); });
+
+  if (pieChart) pieChart.destroy();
+  const ctx = document.getElementById('pie-chart').getContext('2d');
+  pieChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(cats).map(k => CAT_LABELS[k]||k),
+      datasets: [{ data: Object.values(cats), backgroundColor: Object.keys(cats).map(k=>CAT_COLORS[k]||'#888'), borderWidth: 0 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + fmtKRW(ctx.raw) + ' (' + (ctx.raw/total*100).toFixed(1) + '%)' } } } }
+  });
+
+  document.getElementById('alloc-detail').innerHTML = Object.keys(cats).map(k => {
+    const pct = (cats[k]/total*100).toFixed(1);
+    return `<div class="alloc-item">
+      <div class="alloc-row">
+        ${badge(k)}
+        <span class="mono" style="font-size:13px;font-weight:500">${pct}%</span>
+      </div>
+      <div class="alloc-bar"><div class="alloc-fill" style="width:${pct}%;background:${CAT_COLORS[k]}"></div></div>
+      <div class="alloc-sub">${fmtKRW(cats[k])}</div>
+    </div>`;
+  }).join('');
+
+  // tags
+  const cats2 = ['all', ...new Set(ST.assets.map(a=>a.category))];
+  document.getElementById('cat-tags').innerHTML = cats2.map(c =>
+    `<button class="tag ${ST.catFilter===c?'active':''}" onclick="setCatFilter('${c}')">${c==='all'?'전체':CAT_LABELS[c]||c}</button>`
+  ).join('');
+
+  renderAllocTable(total);
+}
+function setCatFilter(c) { ST.catFilter = c; renderAllocation(); }
+function renderAllocTable(total) {
+  const list = ST.catFilter === 'all' ? ST.assets : ST.assets.filter(a => a.category === ST.catFilter);
+  document.getElementById('alloc-tbody').innerHTML = list.map(a => {
+    const v = toKRW(a), ret = retPct(a);
+    return `<tr>
+      <td>${a.name}</td><td>${badge(a.category)}</td>
+      <td class="mono">${fmtKRW(v)}</td>
+      <td class="mono">${(v/total*100).toFixed(1)}%</td>
+      <td class="mono ${ret>=0?'pos':'neg'}">${ret>=0?'+':''}${ret}%</td>
+    </tr>`;
+  }).join('');
+}
+
+let histChart = null;
+function renderHistory() {
+  const sorted = [...ST.history].sort((a,b) => a.year - b.year);
+
+  if (histChart) histChart.destroy();
+  const ctx2 = document.getElementById('hist-chart').getContext('2d');
+  histChart = new Chart(ctx2, {
+    type: 'line',
+    data: {
+      labels: sorted.map(h => h.year + '년'),
+      datasets: [{
+        label: '총 자산',
+        data: sorted.map(h => Math.round(h.amount / 1e4)),
+        borderColor: '#c8a96e',
+        backgroundColor: 'rgba(200,169,110,0.06)',
+        fill: true, tension: 0.35,
+        pointBackgroundColor: '#c8a96e', pointRadius: 5, pointHoverRadius: 7
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { ticks: { callback: v => v.toLocaleString() + '만', color: '#555' }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { display: false } },
+        x: { ticks: { color: '#555' }, grid: { display: false }, border: { display: false } }
+      }
+    }
+  });
+
+  document.getElementById('hist-tbody').innerHTML = sorted.map((h, i) => {
+    const prev = i > 0 ? sorted[i-1].amount : null;
+    const diff = prev != null ? h.amount - prev : null;
+    const pct = prev != null ? ((h.amount - prev)/prev*100).toFixed(1) : null;
+    return `<tr>
+      <td class="mono">${h.year}년</td>
+      <td class="mono" style="font-weight:500">${fmtKRW(h.amount)}</td>
+      <td class="mono ${diff>0?'pos':diff<0?'neg':''}">${diff!=null ? (diff>=0?'+':'')+fmtKRW(Math.abs(diff)) : '—'}</td>
+      <td class="mono ${pct>0?'pos':pct<0?'neg':''}">${pct!=null ? (pct>0?'+':'')+pct+'%' : '—'}</td>
+      <td style="color:var(--text3);font-size:12px">${h.memo||''}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="delHistory(${h.year})">삭제</button></td>
+    </tr>`;
+  }).join('');
+}
+function toggleHistForm() { document.getElementById('hist-form').classList.toggle('show'); }
+function addHistory() {
+  const year = parseInt(document.getElementById('h-year').value);
+  const amount = parseFloat(document.getElementById('h-amount').value);
+  const memo = document.getElementById('h-memo').value;
+  if (!year || !amount) { alert('연도와 금액을 입력하세요.'); return; }
+  ST.history = ST.history.filter(h => h.year !== year);
+  ST.history.push({ year, amount, memo });
+  ['h-year','h-amount','h-memo'].forEach(id => document.getElementById(id).value = '');
+  toggleHistForm(); save(); renderHistory();
+}
+function delHistory(year) { ST.history = ST.history.filter(h => h.year !== year); save(); renderHistory(); }
+
+async function calcIntrinsic() {
+  const key = getApiKey();
+  if (!key) { alert('상단에 API 키를 입력해주세요.'); return; }
+  const company = document.getElementById('iv-company').value.trim();
+  if (!company) { alert('기업명을 입력하세요.'); return; }
+  const price = document.getElementById('iv-price').value;
+  const eps = document.getElementById('iv-eps').value;
+  const growth = document.getElementById('iv-growth').value;
+  const disc = document.getElementById('iv-disc').value || 10;
+  const yrs = document.getElementById('iv-yrs').value || 10;
+  const cur = document.getElementById('iv-cur').value;
+
+  document.getElementById('iv-result').style.display = 'block';
+  document.getElementById('iv-metric-grid').innerHTML = '';
+  const out = document.getElementById('iv-output');
+  out.className = 'ai-box loading';
+  out.textContent = 'AI가 워렌 버핏 방식으로 분석 중입니다...';
+
+  const prompt = `당신은 워렌 버핏의 투자 철학을 깊이 이해하는 가치투자 분석가입니다.
+
+## 분석 요청
+기업: ${company}
+현재 주가: ${price ? price + cur : '미제공'}
+입력 EPS: ${eps || '미제공 (추정 필요)'}
+예상 성장률: ${growth ? growth+'%/년' : '미제공 (추정 필요)'}
+할인율: ${disc}%
+분석 기간: ${yrs}년
+
+## 분석 형식 (아래 형식 그대로 작성)
+
+**[기업 개요]**
+비즈니스 설명 및 경제적 해자(Economic Moat) 분석
+
+**[핵심 재무 지표 추정]**
+• EPS (주당순이익): [값] ${cur}
+• 예상 연간 성장률: [값]%
+• Owner Earnings 추정 근거: [설명]
+• ROE / 자본수익률: [값]%
+
+**[DCF 내재가치 계산]**
+• 10년 후 예상 EPS: [값] ${cur}
+• DCF 기반 적정 주가: [값] ${cur}
+• 안전마진 25% 적용 매수가: [값] ${cur}
+(계산 과정 간략히 설명)
+
+**[현재가 대비 평가]**
+${price ? `현재 주가 ${price}${cur} 기준 평가:` : '일반적 주가 수준 평가:'}
+→ 과대평가 / 저평가 / 적정 여부와 이유
+
+**[워렌 버핏 체크리스트]**
+✓/✗ 이해 가능한 비즈니스
+✓/✗ 지속적 경쟁 우위 (해자)
+✓/✗ 훌륭하고 정직한 경영진
+✓/✗ 합리적인 가격
+
+**[투자 결론]**
+종합 의견 및 주의사항
+
+※ 이 분석은 교육 목적입니다. 실제 투자 결정 전 재무제표 확인 필수.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514', max_tokens: 1200,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content?.map(c => c.text||'').join('') || '';
+
+    out.className = 'ai-box';
+    out.innerHTML = text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+
+    // 숫자 추출해서 메트릭 카드
+    const ivMatch = text.match(/적정 주가[:\s]*([0-9,]+)/);
+    const marginMatch = text.match(/매수가[:\s]*([0-9,]+)/);
+    let cards = '';
+    if (price) cards += `<div class="iv-card"><div class="iv-label">현재 주가</div><div class="iv-val mono">${parseFloat(price).toLocaleString()}${cur}</div></div>`;
+    if (ivMatch) cards += `<div class="iv-card"><div class="iv-label">DCF 적정 주가</div><div class="iv-val mono pos">${ivMatch[1]}${cur}</div></div>`;
+    if (marginMatch) cards += `<div class="iv-card"><div class="iv-label">안전마진 매수가</div><div class="iv-val mono" style="color:var(--amber)">${marginMatch[1]}${cur}</div></div>`;
+    document.getElementById('iv-metric-grid').innerHTML = cards;
+
+    // 이력 저장
+    ST.ivHistory.unshift({
+      company, date: new Date().toLocaleDateString('ko-KR'),
+      price: price||'', intrinsic: ivMatch?ivMatch[1]:'', margin: marginMatch?marginMatch[1]:'',
+      verdict: text.includes('저평가')?'저평가':text.includes('과대평가')?'과대평가':'적정'
+    });
+    if (ST.ivHistory.length > 20) ST.ivHistory.pop();
+    save(); renderIvHistory();
+
+  } catch(e) {
+    out.className = 'ai-box';
+    out.textContent = '오류: ' + e.message;
+  }
+}
+
+function renderIvHistory() {
+  if (!ST.ivHistory.length) return;
+  document.getElementById('iv-history-card').style.display = 'block';
+  document.getElementById('iv-hist-tbody').innerHTML = ST.ivHistory.map((h,i) => `
+    <tr>
+      <td style="font-weight:500">${h.company}</td>
+      <td style="font-size:12px;color:var(--text3)">${h.date}</td>
+      <td class="mono">${h.price||'—'}</td>
+      <td class="mono pos">${h.intrinsic||'—'}</td>
+      <td><span class="badge ${h.verdict==='저평가'?'badge-savings':h.verdict==='과대평가'?'badge-stock':'badge-cash'}">${h.verdict}</span></td>
+      <td><button class="btn btn-sm btn-danger" onclick="delIvHist(${i})">삭제</button></td>
+    </tr>
+  `).join('');
+}
+function delIvHist(i) { ST.ivHistory.splice(i,1); save(); renderIvHistory(); }
+
+function renderAll() { renderPortfolio(); renderAllocation(); renderHistory(); renderIvHistory(); }
+
+function switchTab(tab) {
+  const tabs = ['portfolio','allocation','history','intrinsic'];
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', tabs[i]===tab));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  if (tab === 'allocation') renderAllocation();
+  if (tab === 'history') renderHistory();
+}
+
+renderAll();
+</script>
+</body>
+</html>
