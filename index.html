@@ -260,11 +260,15 @@
   <!-- ═══════════════ CALCULATOR TAB ═══════════════ -->
   <div id="tab-calculator" style="display:none">
     <div class="row g-3">
-      <!-- Input -->
+      <!-- ── 입력 패널 ── -->
       <div class="col-lg-4">
         <div class="card">
-          <div class="card-header py-2"><span class="fw-semibold" style="font-size:0.88rem"><i class="bi bi-sliders me-1"></i>워렌 버핏 내재가치 입력</span></div>
+          <div class="card-header py-2 d-flex justify-content-between align-items-center">
+            <span class="fw-semibold" style="font-size:0.88rem"><i class="bi bi-sliders me-1"></i>워렌 버핏 내재가치 입력</span>
+          </div>
           <div class="card-body">
+
+            <!-- 주가 조회 -->
             <div class="mb-3">
               <label class="form-label">티커 심볼</label>
               <div class="input-group">
@@ -283,32 +287,74 @@
                 </select>
               </div>
             </div>
+
             <hr class="section-divider">
-            <p class="small fw-semibold mb-2" style="color:#93c5fd">📊 기업 기초 데이터 (수동 입력)</p>
+
+            <!-- 수익 지표 모드 토글 -->
             <div class="mb-3">
-              <label class="form-label">현재 EPS (주당순이익) *</label>
-              <input type="number" class="form-control" id="calcEPS" placeholder="예: 6.43" step="0.01">
+              <label class="form-label">수익 지표 방식</label>
+              <div class="btn-group w-100" role="group">
+                <button type="button" class="btn btn-primary btn-sm" id="modeEPS" onclick="setCalcMode('eps')">📈 EPS 방식</button>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="modeOE" onclick="setCalcMode('oe')">💰 주주 이익 (OE)</button>
+              </div>
+              <div class="form-text mt-1" id="modeDesc">EPS: 재무제표 상 주당순이익을 직접 입력</div>
             </div>
+
+            <!-- EPS 방식 -->
+            <div id="epsSection">
+              <div class="mb-3">
+                <label class="form-label">현재 EPS (주당순이익) *</label>
+                <input type="number" class="form-control" id="calcEPS" placeholder="예: 6.43" step="0.01">
+                <div class="form-text">재무제표 EPS 그대로 입력. 설비투자 많은 기업은 OE 방식 권장</div>
+              </div>
+            </div>
+
+            <!-- Owner Earnings 방식 (숨겨져 있다가 토글로 표시) -->
+            <div id="oeSection" style="display:none">
+              <div class="px-3 py-2 rounded mb-3" style="background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.25)">
+                <p class="small mb-1" style="color:#c084fc"><strong>주주 이익 (Owner Earnings)</strong></p>
+                <p class="small text-muted mb-0">= (순이익 + 감가상각비 − 유지보수 자본지출) ÷ 발행주식수<br>버핏이 강조하는 진짜 현금 창출 능력</p>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">주당 순이익 (EPS)</label>
+                <input type="number" class="form-control form-control-sm" id="oeEPS" placeholder="예: 6.43" step="0.01" oninput="calcOEperShare()">
+              </div>
+              <div class="mb-2">
+                <label class="form-label">+ 주당 감가상각비 (D&A per share)</label>
+                <input type="number" class="form-control form-control-sm" id="oeDnA" placeholder="예: 1.20" step="0.01" oninput="calcOEperShare()">
+                <div class="form-text">재무제표 감가상각비 ÷ 발행주식수</div>
+              </div>
+              <div class="mb-2">
+                <label class="form-label">− 주당 유지보수 자본지출 (Maint. CapEx/share)</label>
+                <input type="number" class="form-control form-control-sm" id="oeCapex" placeholder="예: 0.80" step="0.01" oninput="calcOEperShare()">
+                <div class="form-text">성장 투자 제외, 현상 유지에 필요한 CapEx만</div>
+              </div>
+              <div class="mb-3 px-3 py-2 rounded d-flex justify-content-between align-items-center" style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25)">
+                <span class="small fw-semibold" style="color:#93c5fd">= 주당 주주이익 (OE/share)</span>
+                <span class="fw-bold" id="oeResult" style="color:#60a5fa">-</span>
+              </div>
+            </div>
+
+            <hr class="section-divider">
+            <p class="small fw-semibold mb-2" style="color:#93c5fd">⚙️ DCF 파라미터</p>
+
             <div class="mb-3">
               <label class="form-label">예상 연 성장률 – 향후 10년 (%)*</label>
               <input type="number" class="form-control" id="calcGrowthRate" value="15">
-              <div class="form-text">버핏은 예측 가능한 기업만 분석, 보수적 추정 권장</div>
+              <div class="form-text">버핏 권장: 예측 가능한 기업 7~10% 보수적 추정</div>
             </div>
             <div class="mb-3">
-              <label class="form-label">장기 성장률 – 10년 이후 (%)</label>
-              <input type="number" class="form-control" id="calcTerminalGrowth" value="3">
+              <label class="form-label">터미널 PER (10년 후 예상 PER)</label>
+              <input type="number" class="form-control" id="calcTerminalPE" value="15">
+              <div class="form-text">시장 평균(15~18배) 이하로 보수적 설정 권장</div>
             </div>
             <div class="mb-3">
               <label class="form-label">요구 수익률 / 할인율 (%)*</label>
               <input type="number" class="form-control" id="calcDiscountRate" value="10">
-              <div class="form-text">버핏은 보통 10~15% 사용 (기회비용)</div>
+              <div class="form-text">버핏은 10~15% 사용 — 민감도 분석에서 자동 비교</div>
             </div>
             <div class="mb-3">
-              <label class="form-label">터미널 PER (10년 후 예상 PER)</label>
-              <input type="number" class="form-control" id="calcTerminalPE" value="20">
-            </div>
-            <div class="mb-3">
-              <label class="form-label">주당 순자산 BPS (Graham Number용, 선택)</label>
+              <label class="form-label">주당 순자산 BPS (Graham Number 계산용)</label>
               <input type="number" class="form-control" id="calcBVPS" placeholder="예: 4.47" step="0.01">
             </div>
             <div class="mb-3">
@@ -323,55 +369,64 @@
         </div>
       </div>
 
-      <!-- Results -->
+      <!-- ── 결과 패널 ── -->
       <div class="col-lg-8">
-        <!-- Empty state -->
+        <!-- 빈 상태 -->
         <div id="ivEmpty" class="card">
           <div class="card-body text-center py-5 text-muted">
             <i class="bi bi-calculator fs-1 d-block mb-3" style="color:#3b82f6"></i>
             <p class="fs-6 fw-semibold mb-2">워렌 버핏의 내재가치 계산기</p>
-            <p class="small">EPS와 성장률을 입력하고 <strong>내재가치 계산</strong> 버튼을 눌러보세요.</p>
+            <p class="small">EPS 또는 주주 이익을 입력하고 <strong>내재가치 계산</strong> 버튼을 눌러보세요.</p>
             <hr class="section-divider mx-auto" style="max-width:400px">
-            <p class="small text-start mx-auto" style="max-width:440px">
+            <p class="small text-start mx-auto" style="max-width:460px">
               <strong style="color:#93c5fd">버핏의 핵심 원칙:</strong><br>
-              ① 향후 10년간 EPS 성장을 예측<br>
-              ② 10년 후 EPS × Terminal P/E = 터미널 가치<br>
-              ③ 모든 미래 수익을 요구 수익률로 할인<br>
-              ④ 내재가치에서 <em>안전 마진</em>을 추가로 할인한 가격에만 매수<br>
+              ① 향후 10년간 EPS(또는 주주이익) 성장 예측<br>
+              ② 10년 후 기업가치 = EPS × 터미널 PER (보수적으로 설정)<br>
+              ③ 모든 미래 수익을 요구 수익률(할인율)로 할인<br>
+              ④ 내재가치보다 25~50% 낮은 가격에만 매수 (안전마진)<br><br>
+              <strong style="color:#93c5fd">EPS vs 주주 이익 차이:</strong><br>
+              EPS는 회계상 이익이지만, 주주 이익(OE)은 실제 현금 창출 능력입니다.<br>
+              설비투자가 많은 제조업·인프라 기업은 OE 방식이 더 정확합니다.<br><br>
               <span class="text-muted">"Price is what you pay. Value is what you get." – W. Buffett</span>
             </p>
           </div>
         </div>
 
-        <!-- Results (hidden until calculated) -->
+        <!-- 결과 (계산 후 표시) -->
         <div id="ivResults" style="display:none">
+
+          <!-- 판정 배너 -->
           <div id="ivVerdict"></div>
+
+          <!-- 요약 카드 4개 -->
           <div class="row g-3 mb-3">
             <div class="col-6 col-md-3">
               <div class="stat-card">
                 <div class="stat-label">내재가치 (IV)</div>
-                <div class="stat-value" id="ivValue" style="font-size:1.35rem; color:#60a5fa">-</div>
+                <div class="stat-value" id="ivValue" style="font-size:1.3rem; color:#60a5fa">-</div>
+                <div class="small text-muted mt-1" id="ivModeLabel">EPS 방식</div>
               </div>
             </div>
             <div class="col-6 col-md-3">
               <div class="stat-card">
                 <div class="stat-label">현재 주가</div>
-                <div class="stat-value text-white" id="ivCurrentPrice" style="font-size:1.35rem">-</div>
+                <div class="stat-value text-white" id="ivCurrentPrice" style="font-size:1.3rem">-</div>
               </div>
             </div>
             <div class="col-6 col-md-3">
               <div class="stat-card">
                 <div class="stat-label">안전마진 매수가</div>
-                <div class="stat-value" id="ivBuyPrice" style="font-size:1.35rem; color:#4ade80">-</div>
+                <div class="stat-value" id="ivBuyPrice" style="font-size:1.3rem; color:#4ade80">-</div>
               </div>
             </div>
             <div class="col-6 col-md-3">
               <div class="stat-card">
                 <div class="stat-label">Graham Number</div>
-                <div class="stat-value" id="ivGraham" style="font-size:1.35rem; color:#c084fc">-</div>
+                <div class="stat-value" id="ivGraham" style="font-size:1.3rem; color:#c084fc">-</div>
               </div>
             </div>
           </div>
+
           <!-- 기대 수익률 배너 -->
           <div class="card mb-3" id="impliedReturnCard" style="display:none">
             <div class="card-body py-2 d-flex align-items-center gap-3 flex-wrap">
@@ -381,18 +436,60 @@
             </div>
           </div>
 
+          <!-- ★ 시나리오 비교 -->
           <div class="card mb-3">
-            <div class="card-header py-2"><span class="fw-semibold" style="font-size:0.88rem">현재가 vs 내재가치 비교</span></div>
-            <div class="card-body"><div style="height:190px"><canvas id="ivChart"></canvas></div></div>
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+              <span class="fw-semibold" style="font-size:0.88rem"><i class="bi bi-bar-chart-steps me-1"></i>성장률 시나리오 비교</span>
+              <span class="small text-muted">버핏 권장: 보수적 시나리오 중심으로 판단</span>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-sm tx-table mb-0" id="scenarioTable">
+                  <thead><tr>
+                    <th>시나리오</th><th>성장률</th><th>내재가치</th><th>안전마진 매수가</th>
+                    <th>현재가 대비</th><th>판정</th>
+                  </tr></thead>
+                  <tbody id="scenarioBody"></tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
-          <div class="card">
-            <div class="card-header py-2"><span class="fw-semibold" style="font-size:0.88rem">10년 DCF 프로젝션 상세</span></div>
+          <!-- ★ 할인율 민감도 분석 -->
+          <div class="card mb-3">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+              <span class="fw-semibold" style="font-size:0.88rem"><i class="bi bi-table me-1"></i>할인율 민감도 분석</span>
+              <span class="small text-muted">할인율에 따른 내재가치 변화</span>
+            </div>
             <div class="card-body p-0">
               <div class="table-responsive">
                 <table class="table table-sm tx-table mb-0">
                   <thead><tr>
-                    <th>연도</th><th>예상 EPS</th><th>할인계수</th><th>현재가치 (PV)</th><th>누적 PV</th>
+                    <th>할인율</th><th>내재가치</th><th>안전마진 매수가</th><th>현재가 대비</th>
+                  </tr></thead>
+                  <tbody id="sensitivityBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- 차트 -->
+          <div class="card mb-3">
+            <div class="card-header py-2"><span class="fw-semibold" style="font-size:0.88rem">현재가 vs 내재가치 비교 차트</span></div>
+            <div class="card-body"><div style="height:200px"><canvas id="ivChart"></canvas></div></div>
+          </div>
+
+          <!-- DCF 상세 -->
+          <div class="card">
+            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+              <span class="fw-semibold" style="font-size:0.88rem">10년 DCF 프로젝션 상세</span>
+              <span class="small text-muted" id="dcfBaseLabel">EPS 기준</span>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-sm tx-table mb-0">
+                  <thead><tr>
+                    <th>연도</th><th id="dcfColLabel">예상 EPS</th><th>할인계수</th><th>현재가치 (PV)</th><th>누적 PV</th>
                   </tr></thead>
                   <tbody id="dcfBody"></tbody>
                 </table>
@@ -1296,6 +1393,45 @@ function clearAllData() {
 //  INTRINSIC VALUE CALCULATOR
 // ════════════════════════════════════════════════════════
 let ivChart = null;
+let calcMode = 'eps'; // 'eps' | 'oe'
+
+// ── 모드 토글 ──
+function setCalcMode(mode) {
+  calcMode = mode;
+  document.getElementById('epsSection').style.display = mode === 'eps' ? '' : 'none';
+  document.getElementById('oeSection').style.display  = mode === 'oe'  ? '' : 'none';
+  document.getElementById('modeEPS').className = mode === 'eps' ? 'btn btn-primary btn-sm' : 'btn btn-outline-primary btn-sm';
+  document.getElementById('modeOE').className  = mode === 'oe'  ? 'btn btn-primary btn-sm' : 'btn btn-outline-primary btn-sm';
+  document.getElementById('modeDesc').textContent = mode === 'eps'
+    ? 'EPS: 재무제표 상 주당순이익을 직접 입력'
+    : 'OE: 순이익 + D&A − 유지보수 CapEx ÷ 주식수';
+}
+
+// OE 자동 계산 프리뷰
+function calcOEperShare() {
+  const eps   = parseFloat(document.getElementById('oeEPS').value)   || 0;
+  const dna   = parseFloat(document.getElementById('oeDnA').value)   || 0;
+  const capex = parseFloat(document.getElementById('oeCapex').value) || 0;
+  const oe = eps + dna - capex;
+  const cur = document.getElementById('calcCurrency').value;
+  document.getElementById('oeResult').textContent = oe > 0 ? fmtPrice(oe, cur) : '-';
+}
+
+// ── 핵심 DCF 계산 (재사용 가능한 헬퍼) ──
+function computeDCF(baseEarnings, g, dr, tpe) {
+  let pvSum = 0, cur = baseEarnings;
+  const rows = [];
+  for (let yr = 1; yr <= 10; yr++) {
+    cur *= (1 + g);
+    const df = Math.pow(1 + dr, yr);
+    const pv = cur / df;
+    pvSum += pv;
+    rows.push({ yr, earnings: cur, df, pv, cum: pvSum });
+  }
+  const termVal = (rows[9].earnings * tpe) / Math.pow(1 + dr, 10);
+  const iv = pvSum + termVal;
+  return { iv, termVal, pvSum, rows };
+}
 
 async function fetchCalcPrice() {
   const ticker = document.getElementById('calcTicker').value.trim();
@@ -1320,69 +1456,70 @@ async function fetchCalcPrice() {
 function calculateIV() {
   const cur  = document.getElementById('calcCurrency').value;
   const cp   = parseFloat(document.getElementById('calcCurrentPrice').value) || null;
-  const eps  = parseFloat(document.getElementById('calcEPS').value);
   const g    = parseFloat(document.getElementById('calcGrowthRate').value) / 100;
-  const tg   = parseFloat(document.getElementById('calcTerminalGrowth').value) / 100;
   const dr   = parseFloat(document.getElementById('calcDiscountRate').value) / 100;
   const tpe  = parseFloat(document.getElementById('calcTerminalPE').value);
   const bvps = parseFloat(document.getElementById('calcBVPS').value) || 0;
   const sm   = parseFloat(document.getElementById('calcSafetyMargin').value) / 100;
 
-  if (!eps || isNaN(eps) || !g || !dr || !tpe) { alert('EPS, 성장률, 할인율, 터미널 PER은 필수입니다.'); return; }
-
-  // 10-Year DCF
-  let pvSum = 0, curEPS = eps;
-  const rows = [];
-  for (let yr = 1; yr <= 10; yr++) {
-    curEPS *= (1 + g);
-    const df = Math.pow(1 + dr, yr);
-    const pv = curEPS / df;
-    pvSum += pv;
-    rows.push({ yr, eps: curEPS, df, pv, cum: pvSum });
+  // ── 수익 지표 결정 (EPS or Owner Earnings) ──
+  let baseEarnings, earningsLabel;
+  if (calcMode === 'oe') {
+    const oeEPS   = parseFloat(document.getElementById('oeEPS').value)   || 0;
+    const oeDnA   = parseFloat(document.getElementById('oeDnA').value)   || 0;
+    const oeCapex = parseFloat(document.getElementById('oeCapex').value) || 0;
+    baseEarnings = oeEPS + oeDnA - oeCapex;
+    earningsLabel = '주당 주주이익 (OE)';
+    if (baseEarnings <= 0) { alert('주주 이익(OE)이 0 이하입니다.\nEPS, D&A, CapEx 값을 확인해주세요.'); return; }
+  } else {
+    baseEarnings = parseFloat(document.getElementById('calcEPS').value);
+    earningsLabel = 'EPS';
+    if (!baseEarnings || isNaN(baseEarnings)) { alert('EPS를 입력해주세요.'); return; }
   }
-
-  // Terminal value: EPS_10 × PER / (1+dr)^10
-  const termVal = (rows[9].eps * tpe) / Math.pow(1 + dr, 10);
-  const iv = pvSum + termVal;
-  const buyPrice = iv * (1 - sm);
-
-  // Graham Number = √(22.5 × EPS × BPS)
-  const graham = (eps > 0 && bvps > 0) ? Math.sqrt(22.5 * eps * bvps) : null;
+  if (!g || !dr || !tpe) { alert('성장률, 할인율, 터미널 PER은 필수입니다.'); return; }
 
   const fmt = v => cur === 'KRW' ? fmtKRW(v) : fmtUSD(v);
+  const fmtPctSimple = n => (n >= 0 ? '+' : '') + n.toFixed(1) + '%';
 
-  // Upside
+  // ── 메인 DCF 계산 ──
+  const { iv, termVal, pvSum, rows } = computeDCF(baseEarnings, g, dr, tpe);
+  const buyPrice = iv * (1 - sm);
+
+  // Graham Number = √(22.5 × EPS × BPS)  (EPS 기준)
+  const eps = calcMode === 'eps' ? baseEarnings : (parseFloat(document.getElementById('oeEPS').value) || 0);
+  const graham = (eps > 0 && bvps > 0) ? Math.sqrt(22.5 * eps * bvps) : null;
+
   const upside = cp ? ((iv - cp) / cp * 100) : null;
 
-  // Verdict
+  // ── 판정 배너 ──
   let vClass, vIcon, vTitle, vDesc;
   if (!cp) {
     vClass='iv-fair'; vIcon='📊'; vTitle='내재가치 계산 완료';
-    vDesc=`내재가치: <strong>${fmt(iv)}</strong> / 안전마진 매수가: <strong>${fmt(buyPrice)}</strong>`;
+    vDesc=`내재가치: <strong>${fmt(iv)}</strong> &nbsp;|&nbsp; 안전마진 매수가: <strong>${fmt(buyPrice)}</strong>`;
   } else if (cp <= buyPrice) {
     vClass='iv-buy'; vIcon='🟢'; vTitle='매수 기회!';
     vDesc=`현재가(${fmt(cp)})가 안전마진 매수가(<strong>${fmt(buyPrice)}</strong>)보다 낮습니다. 내재가치 대비 <strong>${fmtPct(upside)}</strong> 저평가.`;
   } else if (cp <= iv) {
     vClass='iv-fair'; vIcon='🟡'; vTitle='적정 가치 수준';
-    vDesc=`내재가치(<strong>${fmt(iv)}</strong>) 이하이나 안전마진 부족. 하락 여력이 충분할 때 매수 고려.`;
+    vDesc=`내재가치(<strong>${fmt(iv)}</strong>) 이하이나 안전마진 부족. 더 낮은 가격을 기다리세요.`;
   } else {
     vClass='iv-overvalued'; vIcon='🔴'; vTitle='고평가 구간';
     vDesc=`현재가가 내재가치 대비 <strong>${fmtPct(Math.abs(upside))}</strong> 고평가. 버핏은 이런 상황을 기다립니다.`;
   }
-
   document.getElementById('ivVerdict').innerHTML =
-    `<div class="iv-verdict ${vClass} d-flex align-items-start gap-3">
+    `<div class="iv-verdict ${vClass} d-flex align-items-start gap-3 mb-3">
       <div class="fs-2 lh-1">${vIcon}</div>
       <div><div class="fw-bold fs-6">${vTitle}</div><div class="small mt-1">${vDesc}</div></div>
     </div>`;
 
+  // ── 요약 카드 ──
   document.getElementById('ivValue').textContent = fmt(iv);
+  document.getElementById('ivModeLabel').textContent = earningsLabel + ' 기준';
   document.getElementById('ivCurrentPrice').textContent = cp ? fmt(cp) : '미입력';
   document.getElementById('ivBuyPrice').textContent = fmt(buyPrice);
   document.getElementById('ivGraham').textContent = graham ? fmt(graham) : '데이터 부족';
 
-  // 현재가 기준 기대 수익률 (현재가에 매수 시 연평균 수익률 역산)
-  // iv = cp × (1+r)^10  →  r = (iv/cp)^(1/10) - 1
+  // ── 기대 수익률 배너 ──
   const retCard = document.getElementById('impliedReturnCard');
   if (cp && cp > 0 && iv > 0) {
     const impliedReturn = (Math.pow(iv / cp, 1/10) - 1) * 100;
@@ -1395,11 +1532,52 @@ function calculateIV() {
     retCard.style.display = 'none';
   }
 
-  // DCF Table
+  // ── ★ 시나리오 비교 (성장률 3가지) ──
+  const scenarios = [
+    { label: '낙관 (입력값)', g: g,    color: '#f59e0b', note: '현재 입력 성장률' },
+    { label: '보수적',        g: 0.07, color: '#3b82f6', note: '버핏 권장 상한' },
+    { label: '매우 보수적',   g: 0.05, color: '#22c55e', note: '안정적 성숙 기업' },
+  ];
+  document.getElementById('scenarioBody').innerHTML = scenarios.map(s => {
+    const r = computeDCF(baseEarnings, s.g, dr, tpe);
+    const bp = r.iv * (1 - sm);
+    const vs = cp ? ((r.iv - cp) / cp * 100) : null;
+    const isActive = Math.abs(s.g - g) < 0.001;
+    const rowStyle = isActive ? 'background:rgba(59,130,246,0.12)' : '';
+    const verdict = !cp ? '-' : cp <= bp ? '<span class="text-profit fw-bold">매수 기회</span>' : cp <= r.iv ? '<span style="color:#fbbf24">적정가</span>' : '<span class="text-loss">고평가</span>';
+    return `<tr style="${rowStyle}">
+      <td><span class="fw-semibold" style="color:${s.color}">${s.label}</span>${isActive?' <span class="badge bg-primary ms-1" style="font-size:0.6rem">현재</span>':''}<br><span class="text-muted" style="font-size:0.72rem">${s.note}</span></td>
+      <td class="fw-semibold">${(s.g*100).toFixed(0)}%</td>
+      <td style="color:${s.color}">${fmt(r.iv)}</td>
+      <td>${fmt(bp)}</td>
+      <td class="${vs!=null?(vs>=0?'text-profit':'text-loss'):''}">${vs!=null?fmtPctSimple(vs):'-'}</td>
+      <td>${verdict}</td>
+    </tr>`;
+  }).join('');
+
+  // ── ★ 할인율 민감도 분석 ──
+  const drRates = [0.06, 0.08, 0.09, 0.10, 0.11, 0.12, 0.13, 0.15];
+  document.getElementById('sensitivityBody').innerHTML = drRates.map(rate => {
+    const r = computeDCF(baseEarnings, g, rate, tpe);
+    const bp = r.iv * (1 - sm);
+    const vs = cp ? ((r.iv - cp) / cp * 100) : null;
+    const isActive = Math.abs(rate - dr) < 0.001;
+    const rowStyle = isActive ? 'background:rgba(59,130,246,0.15);font-weight:600' : '';
+    return `<tr style="${rowStyle}">
+      <td>${isActive ? '▶ ' : ''}<span style="${isActive?'color:#60a5fa':''}">${(rate*100).toFixed(0)}%</span>${isActive?' <span class="badge bg-primary ms-1" style="font-size:0.6rem">현재</span>':''}</td>
+      <td style="${isActive?'color:#60a5fa':''}">${fmt(r.iv)}</td>
+      <td>${fmt(bp)}</td>
+      <td class="${vs!=null?(vs>=0?'text-profit':'text-loss'):''}">${vs!=null?fmtPctSimple(vs):'-'}</td>
+    </tr>`;
+  }).join('');
+
+  // ── DCF 상세 테이블 ──
+  document.getElementById('dcfBaseLabel').textContent = earningsLabel + ' 기준';
+  document.getElementById('dcfColLabel').textContent = earningsLabel === 'EPS' ? '예상 EPS' : '예상 주주이익';
   document.getElementById('dcfBody').innerHTML =
     rows.map(r => `<tr>
       <td>Year ${r.yr}</td>
-      <td>${fmt(r.eps)}</td>
+      <td>${fmt(r.earnings)}</td>
       <td>${r.df.toFixed(3)}×</td>
       <td>${fmt(r.pv)}</td>
       <td>${fmt(r.cum)}</td>
@@ -1407,20 +1585,27 @@ function calculateIV() {
     + `<tr style="background:rgba(59,130,246,0.1)"><td colspan="3" class="fw-semibold">터미널 가치 (PV)</td><td colspan="2" class="fw-semibold">${fmt(termVal)}</td></tr>`
     + `<tr style="background:rgba(59,130,246,0.18)"><td colspan="3" class="fw-bold">내재가치 합계</td><td colspan="2" class="fw-bold" style="color:#60a5fa">${fmt(iv)}</td></tr>`;
 
-  // Chart
+  // ── 비교 차트 ──
   if (ivChart) ivChart.destroy();
-  const labels = cp ? ['현재 주가','내재가치 (IV)',`안전마진 매수가`] : ['내재가치 (IV)','안전마진 매수가'];
-  const data   = cp ? [cp, iv, buyPrice] : [iv, buyPrice];
-  const colors = cp ? ['#f59e0b','#3b82f6','#22c55e'] : ['#3b82f6','#22c55e'];
+  const chartScenarios = [
+    { label: '낙관 IV', val: iv, color: '#f59e0b' },
+    { label: '보수적 IV (7%)', val: computeDCF(baseEarnings, 0.07, dr, tpe).iv, color: '#3b82f6' },
+    { label: '매우보수적 IV (5%)', val: computeDCF(baseEarnings, 0.05, dr, tpe).iv, color: '#22c55e' },
+    { label: '안전마진 매수가', val: buyPrice, color: '#a855f7' },
+  ];
+  if (cp) chartScenarios.unshift({ label: '현재 주가', val: cp, color: '#94a3b8' });
   ivChart = new Chart(document.getElementById('ivChart').getContext('2d'), {
     type: 'bar',
-    data: { labels, datasets: [{ data, backgroundColor: colors.map(c=>c+'88'), borderColor: colors, borderWidth: 2, borderRadius: 6 }] },
+    data: {
+      labels: chartScenarios.map(s => s.label),
+      datasets: [{ data: chartScenarios.map(s => s.val), backgroundColor: chartScenarios.map(s => s.color + '88'), borderColor: chartScenarios.map(s => s.color), borderWidth: 2, borderRadius: 5 }]
+    },
     options: {
       responsive: true, maintainAspectRatio: false, indexAxis: 'y',
       plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ` ${fmt(ctx.parsed.x)}` } } },
       scales: {
-        x: { ticks:{ color:'#94a3b8', callback: v => cur==='KRW'?'₩'+v.toLocaleString():'$'+v.toLocaleString() }, grid:{color:'#334155'} },
-        y: { ticks:{color:'#f1f5f9'}, grid:{color:'#334155'} }
+        x: { ticks:{ color:'#94a3b8', callback: v => cur==='KRW'?'₩'+v.toLocaleString():'$'+v.toLocaleString() }, grid:{color:'#475569'} },
+        y: { ticks:{color:'#f1f5f9', font:{size:11}}, grid:{color:'#475569'} }
       }
     }
   });
