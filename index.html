@@ -905,6 +905,7 @@ function renderPortfolio() {
         <td class="${gl2p != null ? (gl2p >= 0 ? 'text-profit' : 'text-loss') : ''}">${gl2p != null ? fmtPct(gl2p) : '-'}</td>
         <td>
           <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-success py-1 px-2" onclick="openAddBuyModal('${h.id}')" title="추가 매수"><i class="bi bi-plus-circle"></i></button>
             <button class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="viewTx('${h.id}')" title="거래내역"><i class="bi bi-clock-history"></i></button>
             <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="openEditHoldingModal('${h.id}')" title="편집"><i class="bi bi-pencil"></i></button>
             <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="deleteHolding('${h.id}')" title="삭제"><i class="bi bi-trash"></i></button>
@@ -1055,6 +1056,24 @@ function openEditHoldingModal(id) {
   new bootstrap.Modal(document.getElementById('holdingModal')).show();
 }
 
+function openAddBuyModal(id) {
+  const h = state.holdings.find(x => x.id === id); if (!h) return;
+  document.getElementById('holdingId').value = id;
+  document.getElementById('holdingModalTitle').textContent = h.name + ' — 추가 매수';
+  document.getElementById('holdingName').value = h.name;
+  document.getElementById('holdingTicker').value = h.ticker || '';
+  document.getElementById('holdingCategory').value = h.category || 'other';
+  document.getElementById('holdingCurrency').value = h.currency || 'KRW';
+  document.getElementById('holdingShares').value = h.shares || '';
+  document.getElementById('holdingAvgPrice').value = h.avgPrice || '';
+  document.getElementById('holdingNote').value = h.note || '';
+  txRows = JSON.parse(JSON.stringify(h.transactions || []));
+  // 오늘 날짜로 새 매수 행 미리 추가
+  txRows.push({ id: uid(), date: new Date().toISOString().slice(0,10), type:'buy', shares:'', price:'', note:'' });
+  renderTxRows(); updateTxPreview();
+  new bootstrap.Modal(document.getElementById('holdingModal')).show();
+}
+
 function addTxRow() {
   txRows.push({ id: uid(), date: new Date().toISOString().slice(0,10), type:'buy', shares:'', price:'', note:'' });
   renderTxRows();
@@ -1114,6 +1133,33 @@ function saveHolding() {
     const h = state.holdings.find(x => x.id === id);
     if (h) Object.assign(h, data);
   } else {
+    // 같은 티커가 이미 있으면 합산 여부 확인
+    const normalizedTicker = data.ticker;
+    const duplicate = normalizedTicker
+      ? state.holdings.find(x => x.ticker && x.ticker === normalizedTicker)
+      : null;
+    if (duplicate) {
+      const confirmed = confirm(
+        `"${duplicate.name}" (${normalizedTicker}) 이(가) 이미 등록되어 있습니다.\n` +
+        `기존 종목에 이번 거래를 합칠까요?\n\n` +
+        `확인 → 기존 종목에 거래 합산\n취소 → 별도 종목으로 등록`
+      );
+      if (confirmed) {
+        // 기존 거래 내역에 새 거래 내역 추가 후 재계산
+        const mergedTx = [...(duplicate.transactions || []), ...txRows];
+        const validMerged = mergedTx.filter(r => (parseFloat(r.shares) > 0) && (parseFloat(r.price) > 0));
+        const calc = validMerged.length > 0 ? calcFromTx(validMerged) : { shares: duplicate.shares, avgPrice: duplicate.avgPrice };
+        Object.assign(duplicate, {
+          shares: calc.shares,
+          avgPrice: calc.avgPrice,
+          transactions: mergedTx
+        });
+        save();
+        bootstrap.Modal.getInstance(document.getElementById('holdingModal')).hide();
+        renderPortfolio();
+        return;
+      }
+    }
     state.holdings.push({ id: uid(), currentPrice: null, updatedAt: null, ...data });
   }
   save();
